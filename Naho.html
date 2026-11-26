@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Nahomy">
+    <title>Nahomy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --rosewater: #FFF5F7;
+            --blush: #FCE4EC;
+            --sakura: #F8BBD0;
+            --dusty-rose: #D87A96;
+            --soft-magenta: #B03A64;
+            --deep-berry: #7A2342;
+            --warm-pink: #F48FB1;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow: hidden;
+            font-family: 'Lora', Georgia, serif;
+            background: radial-gradient(circle at 50% 42%, var(--rosewater) 0%, var(--blush) 58%, #F7D1DF 100%);
+            color: var(--deep-berry);
+        }
+
+        /* Textura orgánica de papel de libro */
+        .paper-grain {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.45;
+            background-image:
+                radial-gradient(rgba(176, 58, 100, 0.06) 1px, transparent 0),
+                radial-gradient(rgba(216, 122, 150, 0.05) 1px, transparent 0);
+            background-size: 28px 28px;
+            background-position: 0 0, 14px 14px;
+        }
+        .page-border {
+            position: fixed;
+            top: max(14px, env(safe-area-inset-top));
+            bottom: max(14px, env(safe-area-inset-bottom));
+            left: max(14px, env(safe-area-inset-left));
+            right: max(14px, env(safe-area-inset-right));
+            border: 1px solid rgba(176, 58, 100, 0.2);
+            border-radius: 20px;
+            pointer-events: none;
+            z-index: 10;
+            box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.45);
+        }
+
+        @media (min-width: 768px) {
+            .page-border {
+                inset: 24px;
+                border-radius: 26px;
+            }
+        }
+
+        #sparkle-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .font-editorial {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+        }
+        .name-stage {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.02em;
+            padding: 0 0.75rem;
+            user-select: none;
+        }
+
+        .floating-letter {
+            display: inline-block;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-weight: 600;
+            font-size: clamp(4.1rem, 15vw, 9.2rem);
+            line-height: 1;
+            letter-spacing: -0.01em;
+            background: linear-gradient(155deg, #8E294D 0%, #B03A64 48%, #D87A96 95%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 8px 18px rgba(176, 58, 100, 0.16));
+            opacity: 0;
+            will-change: transform, opacity;
+            transform: translate3d(var(--start-x, 0px), var(--start-y, 0px), 0)
+                       rotate(var(--start-rot, 0deg))
+                       scale(var(--start-scale, 0.55));
+            transition: transform 2.8s cubic-bezier(0.2, 0.95, 0.32, 1),
+                        opacity 2.1s ease-out;
+        }
+
+        .floating-letter.settled {
+            opacity: 1;
+            transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+        }
+
+        .floating-letter.levitate {
+            animation: softBookHover 4.8s ease-in-out infinite;
+            animation-delay: var(--float-delay, 0s);
+        }
+
+        @keyframes softBookHover {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-6px);
+            }
+        }
+
+        /* Aparición suave de los elementos secundarios */
+        .reveal-soft {
+            opacity: 0;
+            transform: translateY(14px);
+            transition: opacity 1.5s ease, transform 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .reveal-soft.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Botón minimalista estilo marcador de libro */
+        .keepsake-btn {
+            background: rgba(255, 245, 247, 0.72);
+            border: 1px solid rgba(176, 58, 100, 0.32);
+            color: var(--soft-magenta);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            box-shadow: 0 8px 24px -6px rgba(176, 58, 100, 0.18);
+            transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .keepsake-btn:hover {
+            background: #B03A64;
+            color: #FFF5F7;
+            border-color: #B03A64;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 26px -6px rgba(176, 58, 100, 0.32);
+        }
+
+        .keepsake-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Modal tipo hoja de carta doblada */
+        .letter-backdrop {
+            background: rgba(122, 35, 66, 0.24);
+            backdrop-filter: blur(7px);
+            -webkit-backdrop-filter: blur(7px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.45s ease;
+        }
+
+        .letter-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .letter-sheet {
+            background: linear-gradient(180deg, #FFF8FA 0%, #FCE9EF 100%);
+            border: 1px solid rgba(176, 58, 100, 0.24);
+            box-shadow: 0 24px 60px -15px rgba(122, 35, 66, 0.28),
+                        inset 0 0 50px rgba(255, 255, 255, 0.85);
+            transform: translateY(22px) scale(0.97);
+            transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+            max-height: calc(100dvh - 2.5rem);
+            overflow-y: auto;
+        }
+
+        .letter-backdrop.open .letter-sheet {
+            transform: translateY(0) scale(1);
+        }
+
+        .drop-cap::first-letter {
+            float: left;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 3.2rem;
+            line-height: 0.85;
+            padding-right: 0.5rem;
+            padding-top: 0.1rem;
+            font-weight: 600;
+            color: var(--soft-magenta);
+        }
+    </style>
+</head>
+<body class="relative flex flex-col items-center justify-center w-full min-h-[100dvh] overflow-hidden">
+    <div class="paper-grain"></div>
+    <div class="page-border"></div>
+    <canvas id="sparkle-canvas"></canvas>
+    <main class="relative z-20 flex flex-col items-center justify-center w-full max-w-3xl px-6 sm:px-10 text-center">
+        <h1 id="nahomy-title" class="name-stage select-none" aria-label="Nahomy"></h1>
+        <p id="dedication-line" class="reveal-soft font-editorial italic text-xl sm:text-2xl md:text-[27px] text-[#8E294D] mt-4 sm:mt-5 max-w-md md:max-w-lg leading-relaxed">
+            Se que no soy perfecto pero mi cariño y mi amor por ti es sincero y honesto.
+        </p>
+        <div id="ornament-line" class="reveal-soft my-6 sm:my-7 flex items-center justify-center gap-3 text-[#D87A96]">
+            <span class="h-[1px] w-14 sm:w-20 bg-gradient-to-r from-transparent via-[#B03A64]/40 to-transparent"></span>
+            <span class="text-xs tracking-widest">✦</span>
+            <span class="h-[1px] w-14 sm:w-20 bg-gradient-to-r from-transparent via-[#B03A64]/40 to-transparent"></span>
+        </div>
+        <div id="action-wrapper" class="reveal-soft">
+            <button id="open-letter-btn" class="keepsake-btn px-7 py-3 sm:px-8 sm:py-3.5 rounded-full font-editorial text-lg sm:text-xl font-medium tracking-wide cursor-pointer">
+                Leer una nota para ti
+            </button>
+        </div>
+
+    </main>
+    <div id="letter-modal" class="letter-backdrop fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-6">
+        <article class="letter-sheet relative w-full max-w-lg rounded-2xl sm:rounded-3xl p-7 sm:p-10 text-[#6D1D3A]">
+            <button id="close-letter-btn" aria-label="Cerrar nota" class="absolute top-4 right-4 w-9 h-9 rounded-full text-[#B03A64]/70 hover:text-[#7A2342] hover:bg-[#F8BBD0]/35 flex items-center justify-center transition-colors cursor-pointer">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <header class="mb-6">
+                <p class="font-editorial italic text-lg sm:text-xl text-[#B03A64]">Para Nahomy,</p>
+                <div class="mt-2 h-[1px] w-16 bg-[#D87A96]/40"></div>
+            </header>
+            <div class="space-y-4 text-[15.5px] sm:text-[17px] leading-[1.8] text-[#5E1932]">
+                <p class="drop-cap">
+                    Te amo. Tal vez mis palabras suenen vacías, pero detrás de ellas hay un sentimiento enorme y más por ti. Se que a veces me equivoco y me siento mal por eso, pero te prometo que estoy aprendiendo a hacerte feliz.
+                </p>
+                <p>
+                    A veces la distancia pesa un poquito, sobre todo en los días normales en los que solo quisiera tenerte enfrente y platicar contigo sin ver la hora. Pero incluso lejos, sigues siendo mi persona favorita y lo mejor de mis días.
+                </p>
+                <p>
+                    Amo tu voz, amo tu cabello, amo la forma en que me haces reír en las madrugadas. Amo lo inocente, lo tierna y lo bondadosa que eres.
+                </p>
+				<p>
+					Eres el lado positivo de mi vida. Somos como dos imanes tu, con tu lado positivo y yo con el negativo, y aun así sentimos una conexión enorme. Me gusta absolutamente todo de ti, y no sabes lo feliz que me haces.
+				</p>	
+			    <p>
+					A veces, aunque no lo creas, me da miedo. Siento que para muchos puedo ser reemplazable, y no quisiera que contigo fuera así. Por eso te lo digo con el corazón... me da miedo perderte, Nahomy.
+                </p>
+				</p>
+				   No sabes lo agradecido que estoy por todo el tiempo que hemos pasado juntos. Bueno... mucho tiempo para mí claro jaja.
+                   Prometo ser mejor para ti, seguir mejorando y esforzarme cada día. A veces me da miedo perderte y lamento ser tan inseguro, pero es porque me importas muchísimo.
+				</p>
+            </div>
+
+            <!-- Firma sencilla -->
+            <footer class="mt-8 pt-4 border-t border-[#B03A64]/15 flex items-center justify-between text-[#8E294D]">
+                <span class="font-editorial italic text-xl">Siempre tuyo.</span>
+                <span class="text-sm text-[#D87A96]">♥</span>
+            </footer>
+        </article>
+    </div>
+
+    <script>
+        const targetWord = "Nahomy";
+        const titleContainer = document.getElementById("nahomy-title");
+
+        const initialOffsets = [
+            { x: -130, y: -165, rot: -32, scale: 0.5 }, // N
+            { x: -70,  y: 170,  rot: 24,  scale: 0.55 }, // a
+            { x: -18,  y: -185, rot: -18, scale: 0.48 }, // h
+            { x: 32,   y: 160,  rot: 28,  scale: 0.55 }, // o
+            { x: 88,   y: -155, rot: -26, scale: 0.5 }, // m
+            { x: 140,  y: 165,  rot: 34,  scale: 0.48 }  // y
+        ];
+
+        function animateNameIntro() {
+            titleContainer.innerHTML = "";
+            const letters = [];
+
+            // Escala adaptable entre móvil estrecho y pantallas anchas de PC
+            const isMobile = window.innerWidth < 640;
+            const isDesktop = window.innerWidth >= 1024;
+            const spreadFactor = isMobile ? 0.72 : (isDesktop ? 1.45 : 1.1);
+
+            targetWord.split("").forEach((char, index) => {
+                const span = document.createElement("span");
+                span.textContent = char;
+                span.className = "floating-letter";
+
+                const offset = initialOffsets[index % initialOffsets.length];
+                span.style.setProperty("--start-x", `${offset.x * spreadFactor}px`);
+                span.style.setProperty("--start-y", `${offset.y * spreadFactor}px`);
+                span.style.setProperty("--start-rot", `${offset.rot}deg`);
+                span.style.setProperty("--start-scale", offset.scale);
+                span.style.setProperty("--float-delay", `${index * 0.3}s`);
+
+                titleContainer.appendChild(span);
+                letters.push(span);
+            });
+
+            letters.forEach((span, idx) => {
+                setTimeout(() => {
+                    span.classList.add("settled");
+                    setTimeout(() => {
+                        const rect = span.getBoundingClientRect();
+                        spawnSparkleBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 7);
+                        span.classList.add("levitate");
+                    }, 2100);
+                }, 220 + idx * 230);
+            });
+
+            const secondaryItems = [
+                { id: "dedication-line", delay: 2350 },
+                { id: "ornament-line", delay: 2650 },
+                { id: "action-wrapper", delay: 2950 }
+            ];
+
+            secondaryItems.forEach(item => {
+                const el = document.getElementById(item.id);
+                if (el) {
+                    setTimeout(() => el.classList.add("visible"), item.delay);
+                }
+            });
+        }
+
+        /**
+         * 2. DESTELLOS ROSITAS SUTILES Y SUAVES
+         */
+        const canvas = document.getElementById("sparkle-canvas");
+        const ctx = canvas.getContext("2d");
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        const pinkPalette = [
+            "#F48FB1", // Rosa sakura
+            "#F8BBD0", // Rosa pastel
+            "#D87A96", // Palo de rosa suave
+            "#FF80AB", // Destello rosita cálido
+            "#FFF5F7"  // Brillo claro
+        ];
+
+        const particles = [];
+
+        class PinkSparkle {
+            constructor(x, y, isBurst = false) {
+                this.x = x ?? Math.random() * width;
+                this.y = y ?? Math.random() * height;
+                this.isBurst = isBurst;
+
+                this.size = isBurst ? (Math.random() * 4.5 + 2.2) : (Math.random() * 3.8 + 1.4);
+                this.color = pinkPalette[Math.floor(Math.random() * pinkPalette.length)];
+
+                if (isBurst) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 2.1 + 0.4;
+                    this.vx = Math.cos(angle) * speed;
+                    this.vy = Math.sin(angle) * speed - 0.35;
+                    this.life = 1.0;
+                    this.decay = Math.random() * 0.016 + 0.011;
+                } else {
+                    this.vx = (Math.random() - 0.5) * 0.32;
+                    this.vy = -Math.random() * 0.42 - 0.1;
+                    this.life = 1.0;
+                    this.decay = 0;
+                }
+
+                this.twinkleSpeed = Math.random() * 0.045 + 0.015;
+                this.twinklePhase = Math.random() * Math.PI * 2;
+                this.isStar = Math.random() > 0.3;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.twinklePhase += this.twinkleSpeed;
+
+                if (this.isBurst) {
+                    this.vx *= 0.96;
+                    this.vy *= 0.96;
+                    this.life -= this.decay;
+                } else {
+                    if (this.y < -16) {
+                        this.y = height + 16;
+                        this.x = Math.random() * width;
+                    }
+                    if (this.x < -16) this.x = width + 16;
+                    if (this.x > width + 16) this.x = -16;
+                }
+            }
+
+            draw(context) {
+                const twinkle = (Math.sin(this.twinklePhase) + 1) * 0.5;
+                const alpha = this.isBurst ? Math.max(0, this.life) : (0.22 + twinkle * 0.68);
+
+                context.save();
+                context.translate(this.x, this.y);
+                context.globalAlpha = alpha;
+                context.fillStyle = this.color;
+                context.shadowBlur = 8;
+                context.shadowColor = this.color;
+
+                if (this.isStar) {
+                    const s = this.size * (0.75 + twinkle * 0.4);
+                    context.beginPath();
+                    context.moveTo(0, -s * 1.55);
+                    context.quadraticCurveTo(0, 0, s * 1.55, 0);
+                    context.quadraticCurveTo(0, 0, 0, s * 1.55);
+                    context.quadraticCurveTo(0, 0, -s * 1.55, 0);
+                    context.quadraticCurveTo(0, 0, 0, -s * 1.55);
+                    context.closePath();
+                    context.fill();
+                } else {
+                    context.beginPath();
+                    context.arc(0, 0, this.size * 0.55, 0, Math.PI * 2);
+                    context.fill();
+                }
+
+                context.restore();
+            }
+        }
+
+        function initSparkles() {
+            const count = window.innerWidth < 640 ? 38 : 68;
+            for (let i = 0; i < count; i++) {
+                particles.push(new PinkSparkle());
+            }
+        }
+
+        function spawnSparkleBurst(x, y, amount = 10) {
+            for (let i = 0; i < amount; i++) {
+                particles.push(new PinkSparkle(x, y, true));
+            }
+        }
+
+        function renderSparkles() {
+            ctx.clearRect(0, 0, width, height);
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                p.draw(ctx);
+
+                if (p.isBurst && p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            requestAnimationFrame(renderSparkles);
+        }
+
+        // Interacción suave en pantalla táctil (móvil) y mouse (PC)
+        let lastTrailTime = 0;
+        function triggerSparkleTrail(x, y, isTap = false) {
+            const now = Date.now();
+            if (isTap) {
+                spawnSparkleBurst(x, y, 12);
+            } else if (now - lastTrailTime > 55) {
+                spawnSparkleBurst(x, y, 2);
+                lastTrailTime = now;
+            }
+        }
+
+        window.addEventListener("pointerdown", (e) => {
+            triggerSparkleTrail(e.clientX, e.clientY, true);
+        });
+
+        window.addEventListener("pointermove", (e) => {
+            if (e.pointerType === "mouse") {
+                triggerSparkleTrail(e.clientX, e.clientY, false);
+            }
+        });
+
+        window.addEventListener("touchmove", (e) => {
+            if (e.touches.length > 0) {
+                triggerSparkleTrail(e.touches[0].clientX, e.touches[0].clientY, false);
+            }
+        }, { passive: true });
+
+        window.addEventListener("resize", () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        /**
+         * 3. APERTURA Y CIERRE DE LA NOTA PERSONAL
+         */
+        const modal = document.getElementById("letter-modal");
+        const openBtn = document.getElementById("open-letter-btn");
+        const closeBtn = document.getElementById("close-letter-btn");
+
+        openBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            modal.classList.add("open");
+            spawnSparkleBurst(window.innerWidth / 2, window.innerHeight / 2, 16);
+        });
+
+        closeBtn.addEventListener("click", () => {
+            modal.classList.remove("open");
+        });
+
+        modal.addEventListener("click", (e) => {
+            if (e.target === modal) {
+                modal.classList.remove("open");
+            }
+        });
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && modal.classList.contains("open")) {
+                modal.classList.remove("open");
+            }
+        });
+
+        window.onload = function () {
+            initSparkles();
+            renderSparkles();
+            animateNameIntro();
+        };
+    </script>
+</body>
+</html>
